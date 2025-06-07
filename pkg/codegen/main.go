@@ -71,6 +71,15 @@ func main() {
 				GenerateTypes:   true,
 				GenerateClients: true,
 			},
+			"app.llmos.ai": {
+				PackageName: "app.llmos.ai",
+				Types: []interface{}{
+					// All structs with an embedded ObjectMeta field will be picked up
+					"./pkg/apis/app.llmos.ai/v1",
+				},
+				GenerateTypes:   true,
+				GenerateClients: true,
+			},
 			upgradev1.SchemeGroupVersion.Group: {
 				PackageName: upgradev1.SchemeGroupVersion.Group,
 				Types: []interface{}{

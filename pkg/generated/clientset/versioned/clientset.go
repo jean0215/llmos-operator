@@ -21,6 +21,7 @@ import (
 	fmt "fmt"
 	http "net/http"
 
+	appv1 "github.com/llmos-ai/llmos-operator/pkg/generated/clientset/versioned/typed/app.llmos.ai/v1"
 	cephv1 "github.com/llmos-ai/llmos-operator/pkg/generated/clientset/versioned/typed/ceph.rook.io/v1"
 	helmv1 "github.com/llmos-ai/llmos-operator/pkg/generated/clientset/versioned/typed/helm.cattle.io/v1"
 	managementv1 "github.com/llmos-ai/llmos-operator/pkg/generated/clientset/versioned/typed/management.llmos.ai/v1"
@@ -37,6 +38,7 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
+	AppV1() appv1.AppV1Interface
 	CephV1() cephv1.CephV1Interface
 	HelmV1() helmv1.HelmV1Interface
 	ManagementV1() managementv1.ManagementV1Interface
@@ -51,6 +53,7 @@ type Interface interface {
 // Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
+	appV1        *appv1.AppV1Client
 	cephV1       *cephv1.CephV1Client
 	helmV1       *helmv1.HelmV1Client
 	managementV1 *managementv1.ManagementV1Client
@@ -60,6 +63,11 @@ type Clientset struct {
 	snapshotV1   *snapshotv1.SnapshotV1Client
 	storageV1    *storagev1.StorageV1Client
 	upgradeV1    *upgradev1.UpgradeV1Client
+}
+
+// AppV1 retrieves the AppV1Client
+func (c *Clientset) AppV1() appv1.AppV1Interface {
+	return c.appV1
 }
 
 // CephV1 retrieves the CephV1Client
@@ -151,6 +159,10 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
+	cs.appV1, err = appv1.NewForConfigAndClient(&configShallowCopy, httpClient)
+	if err != nil {
+		return nil, err
+	}
 	cs.cephV1, err = cephv1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -208,6 +220,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
+	cs.appV1 = appv1.New(c)
 	cs.cephV1 = cephv1.New(c)
 	cs.helmV1 = helmv1.New(c)
 	cs.managementV1 = managementv1.New(c)
