@@ -50,10 +50,27 @@ spec:
             description: RegistrySpec defines the desired state of Registry
             properties:
               backendType:
-                description: BackendType is the type of backend storage (e.g., S3)
+                description: BackendType is the type of backend storage (e.g., S3,
+                  HuggingFace, ModelScope)
                 enum:
                 - S3
+                - HuggingFace
+                - ModelScope
                 type: string
+              huggingFaceConfig:
+                properties:
+                  tokenSecretName:
+                    description: TokenSecretName is the name of the secret containing
+                      the Hugging Face token
+                    type: string
+                type: object
+              modelScopeConfig:
+                properties:
+                  tokenSecretName:
+                    description: TokenSecretName is the name of the secret containing
+                      the ModelScope token
+                    type: string
+                type: object
               s3Config:
                 properties:
                   accessCredentialSecretName:

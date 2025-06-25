@@ -312,8 +312,8 @@ func (h *handler) createJob(v *mlv1.LocalModelVersion) error {
 						{
 							Name:  "downloader",
 							Image: settings.ModelDownloaderImage.Get(),
-							// TODO: add the args
 							Args: []string{
+								fmt.Sprintf("--registry=%s", v.Labels[RegistryNameLabel]),
 								fmt.Sprintf("--name=%s/%s", v.Labels[ModelNamespaceLabel], v.Labels[ModelNameLabel]),
 								fmt.Sprintf("--output-dir=%s", path.Join(volumeMountPath, "models", v.Namespace, v.Spec.LocalModel)),
 								"--debug=true",

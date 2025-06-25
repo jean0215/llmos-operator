@@ -1,0 +1,28 @@
+apiVersion: ml.llmos.ai/v1
+kind: Registry
+metadata:
+  name: modelscope-public
+spec:
+  backendType: ModelScope
+---
+apiVersion: ml.llmos.ai/v1
+kind: Registry
+metadata:
+  name: modelscope-private
+spec:
+  backendType: ModelScope
+  modelScopeConfig:
+    # For private models, specify the secret containing the ModelScope token
+    tokenSecretName: "modelscope-token"
+---
+# Secret for ModelScope token (for private models)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: modelscope-token
+  namespace: llmos-system
+type: Opaque
+data:
+  # Base64 encoded ModelScope API token
+  # Replace 'your-modelscope-token-here' with your actual token
+  token: eW91ci1tb2RlbHNjb3BlLXRva2VuLWhlcmU=  # your-modelscope-token-here

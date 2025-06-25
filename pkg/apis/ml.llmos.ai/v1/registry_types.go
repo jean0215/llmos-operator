@@ -7,6 +7,13 @@ import (
 	"github.com/llmos-ai/llmos-operator/pkg/utils/condition"
 )
 
+// Backend type constants
+const (
+	BackendTypeS3          = "S3"
+	BackendTypeHuggingFace = "HuggingFace"
+	BackendTypeModelScope  = "ModelScope"
+)
+
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -26,11 +33,15 @@ type Registry struct {
 
 // RegistrySpec defines the desired state of Registry
 type RegistrySpec struct {
-	// BackendType is the type of backend storage (e.g., S3)
-	// +kubebuilder:validation:Enum=S3
+	// BackendType is the type of backend storage (e.g., S3, HuggingFace, ModelScope)
+	// +kubebuilder:validation:Enum=S3;HuggingFace;ModelScope
 	BackendType string `json:"backendType"`
 	// +optional
 	S3Config S3Config `json:"s3Config,omitempty"`
+	// +optional
+	HuggingFaceConfig HuggingFaceConfig `json:"huggingFaceConfig,omitempty"`
+	// +optional
+	ModelScopeConfig ModelScopeConfig `json:"modelScopeConfig,omitempty"`
 }
 
 type S3Config struct {
@@ -42,6 +53,18 @@ type S3Config struct {
 	Bucket string `json:"bucket"`
 	// AccessCredentialSecretName is the name of the secret containing the access credentials
 	AccessCredentialSecretName string `json:"accessCredentialSecretName"`
+}
+
+type HuggingFaceConfig struct {
+	// TokenSecretName is the name of the secret containing the Hugging Face token
+	// +optional
+	TokenSecretName string `json:"tokenSecretName,omitempty"`
+}
+
+type ModelScopeConfig struct {
+	// TokenSecretName is the name of the secret containing the ModelScope token
+	// +optional
+	TokenSecretName string `json:"tokenSecretName,omitempty"`
 }
 
 // RegistryStatus defines the observed state of Registry

@@ -1,0 +1,30 @@
+# Hugging Face Registry for public models
+apiVersion: ml.llmos.ai/v1
+kind: Registry
+metadata:
+  name: huggingface-public
+spec:
+  backendType: HuggingFace
+---
+# Hugging Face Registry for private models
+apiVersion: ml.llmos.ai/v1
+kind: Registry
+metadata:
+  name: huggingface-private
+spec:
+  backendType: HuggingFace
+  huggingFaceConfig:
+    tokenSecretName: "hf-token-secret"
+---
+# Secret for private Hugging Face models
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hf-token-secret
+  namespace: llmos-system
+type: Opaque
+data:
+  # Replace with your base64-encoded Hugging Face token
+  # Get your token from: https://huggingface.co/settings/tokens
+  # echo -n "your-hf-token" | base64
+  token: eW91ci1oZi10b2tlbg==  # This is base64 for "your-hf-token"

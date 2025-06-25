@@ -20,9 +20,6 @@ import (
 
 const (
 	defaultThreadness = 3
-
-	huggingfaceRegistry = "huggingface"
-	modelScopeRegistry  = "modelscope"
 )
 
 type client struct {
@@ -60,30 +57,54 @@ func newClient(kubeConfig string) (*client, error) {
 }
 
 func (c *client) Download(ctx context.Context, registry, modelName, outputDir string, threadness int) error {
-	if registry == huggingfaceRegistry || registry == modelScopeRegistry {
-		return nil
-	}
-
-	tmp := strings.Split(modelName, "/")
-	if len(tmp) != 2 {
-		return fmt.Errorf("invalid model name: %s", modelName)
-	}
-	namespace, name := tmp[0], tmp[1]
-
-	reg, rootPath, err := apimodel.GetModelRegistryAndRootPath(c.getModel, namespace, name)
-	if err != nil {
-		return fmt.Errorf("failed to get registry and root path of %s/%s: %w", namespace, name, err)
-	}
-
-	b, err := pkgreg.NewManager(c.getSecret, c.getRegistry).NewBackendFromRegistry(ctx, reg)
-	if err != nil {
-		return fmt.Errorf("failed to create backend: %w", err)
+	// Check if this is a direct registry name or a model path
+	if !strings.Contains(modelName, "/") {
+		return fmt.Errorf("invalid model name format: %s, expected format: namespace/name", modelName)
 	}
 
 	if threadness <= 0 {
 		threadness = defaultThreadness
 	}
-	return b.IncrementalDownload(ctx, rootPath, outputDir, threadness)
+
+	// Get registry to determine backend type
+	reg, err := c.getRegistry(registry)
+	if err != nil {
+		return fmt.Errorf("failed to get registry %s: %w", registry, err)
+	}
+
+	// Create backend from registry
+	b, err := pkgreg.NewManager(c.getSecret, c.getRegistry).NewBackendFromRegistry(ctx, registry)
+	if err != nil {
+		return fmt.Errorf("failed to create backend: %w", err)
+	}
+
+	// Determine download path based on backend type
+	var downloadPath string
+	switch reg.Spec.BackendType {
+	case mlv1.BackendTypeHuggingFace:
+		// For HuggingFace, use model name directly as path
+		downloadPath = modelName
+	case mlv1.BackendTypeModelScope:
+		// For ModelScope, use model name directly as path
+		downloadPath = modelName
+	case mlv1.BackendTypeS3:
+		// For S3 (model-based registry), get root path from model
+		tmp := strings.Split(modelName, "/")
+		if len(tmp) != 2 {
+			return fmt.Errorf("invalid model name: %s", modelName)
+		}
+		namespace, name := tmp[0], tmp[1]
+
+		_, rootPath, err := apimodel.GetModelRegistryAndRootPath(c.getModel, namespace, name)
+		if err != nil {
+			return fmt.Errorf("failed to get registry and root path of %s/%s: %w", namespace, name, err)
+		}
+		downloadPath = rootPath
+	default:
+		return fmt.Errorf("unsupported backend type: %s", reg.Spec.BackendType)
+	}
+
+	return b.IncrementalDownload(ctx, downloadPath, outputDir, threadness)
 }
 
 func (c *client) getModel(namespace, name string) (*mlv1.Model, error) {
