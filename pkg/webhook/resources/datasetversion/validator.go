@@ -19,6 +19,8 @@ import (
 	werror "github.com/llmos-ai/llmos-operator/pkg/webhook/error"
 )
 
+const storageClassName = "llmos-ceph-block"
+
 type validator struct {
 	admission.DefaultValidator
 
@@ -51,6 +53,9 @@ func (v *validator) Create(_ *admission.Request, obj runtime.Object) error {
 	dv := obj.(*mlv1.DatasetVersion)
 
 	if dv.Spec.Publish {
+		if err := v.checkStorageClassExists(); err != nil {
+			return err
+		}
 		if dv.Spec.CopyFrom == nil || dv.Spec.CopyFrom.Version == "" ||
 			dv.Spec.CopyFrom.Dataset == "" || dv.Spec.CopyFrom.Namespace == "" {
 			return werror.BadRequest("copyFrom field is required when publish is true")
@@ -82,6 +87,9 @@ func (v *validator) Update(_ *admission.Request, oldObj runtime.Object, newObj r
 
 	// If the dataset version has no content, it's not allowed to be published.
 	if !oldDV.Spec.Publish && newDV.Spec.Publish {
+		if err := v.checkStorageClassExists(); err != nil {
+			return err
+		}
 		// Check if the dataset version has content before allowing publish
 		if err := v.checkDatasetVersionHasContent(newDV); err != nil {
 			return werror.BadRequest(fmt.Sprintf("cannot publish dataset version: %v", err))
@@ -131,6 +139,16 @@ func (v *validator) checkDatasetVersionHasContent(dv *mlv1.DatasetVersion) error
 		return fmt.Errorf("dataset version has no content")
 	}
 
+	return nil
+}
+
+func (v *validator) checkStorageClassExists() error {
+	if _, err := v.storageClassCache.Get(storageClassName); err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("storage class %s not found, please enable system storage firstly", storageClassName)
+		}
+		return fmt.Errorf("failed to get storage class %s: %w", storageClassName, err)
+	}
 	return nil
 }
 
